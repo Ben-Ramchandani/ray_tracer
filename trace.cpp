@@ -3,18 +3,9 @@
 #include<stdio.h>
 #include<vector>
 #include "ray.h"
-#define TRACE_DEPTH 9000
 #define DBL_INFINITY (1.0/0.0)
-#define LIGHT_FALLOFF 2000
-#define SCREEN_ALIGN_EPSILON 0.0000001
-#define SCREEN_RESOLUTION_WIDTH 1920
-#define SCREEN_RESOLUTION_HEIGHT 1080
-#define SCREEN_DISTANCE 10
-#define SCREEN_SIZE_SCALE (1.0/1000.0)
 #define SCREEN_WIDTH (((double) (SCREEN_RESOLUTION_WIDTH)) * SCREEN_SIZE_SCALE)
 #define SCREEN_HEIGHT (((double) (SCREEN_RESOLUTION_HEIGHT)) * SCREEN_SIZE_SCALE)
-#define EYE_POSITION (vector3(0, 0, 0))
-#define EYE_DIRECTION (vector3(0, 0, 1))
 
 /* topl ------- 
  * |		|
@@ -110,9 +101,8 @@ void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	}
 }
 
-
 void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, rgb_colour *c) {
-	double t;
+	double t, cosine_angle;
 	bool hit_side, light_side;
 	vector3 hit_position;
 	colour tmpcol, lightcol = colour(32, 32, 32);
@@ -123,10 +113,15 @@ void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 	if(intersect_shape != NULL) {
 		liter = lights.begin();
 		hit_position = r.origin + t*r.dir;
-		hit_side = (r.dir.dot(intersect_shape->get_normal(r.origin + t*r.dir)) > 0.0);
+		hit_side = (r.dir.dot(intersect_shape->get_normal(hit_position)) > 0.0);
 		while(liter != lights.end()) {
 			//Don't look for light begind the object
-			light_side = ((hit_position-(**liter).pos).dot(intersect_shape->get_normal(r.origin + t*r.dir))) > 0.0;
+			cosine_angle = (hit_position-(**liter).pos).dot(intersect_shape->get_normal(r.origin + t*r.dir));
+			if(cosine_angle < ANGLE_CULL_EPSILON && cosine_angle > -ANGLE_CULL_EPSILON) {
+				light_side = hit_side;
+			} else {
+				light_side = cosine_angle > 0.0;
+			}
 			if(light_side == hit_side) {
 				trace_light(hit_position, world, *liter, &tmpcol);
 			}
@@ -192,7 +187,7 @@ int main() {
 	//print_char_arr(data, 16*3);
 	write_pnm(data, screen.width, screen.height, stdout);
 	free(data);
-	delete w;
-	delete l;
+	freeWorld(w);
+	freeLights(l);
 	return 0;
 }

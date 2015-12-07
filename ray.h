@@ -1,6 +1,16 @@
 #ifndef HEADER_RAY
 #define HEADER_RAY
-#define INTERSECT_EPSILON 0.000001
+#define INTERSECT_EPSILON 0.0000000001
+#define TRACE_DEPTH 9000
+#define LIGHT_FALLOFF 600
+#define SCREEN_ALIGN_EPSILON 0.0000001
+#define SCREEN_RESOLUTION_WIDTH 1920
+#define SCREEN_RESOLUTION_HEIGHT 1080
+#define SCREEN_DISTANCE 5
+#define SCREEN_SIZE_SCALE (1.0/1000.0)
+#define EYE_POSITION (vector3(0, 0, 0)) 
+#define EYE_DIRECTION (vector3(0, 0, 1)) 
+#define ANGLE_CULL_EPSILON 100000 
 #include<vector>
 #include<iostream>
 #include<stdio.h>
@@ -90,7 +100,7 @@ class vector3 {
 	}
 
 	double length() const {
-		return sqrt(lengthsq());
+		return std::sqrt(lengthsq());
 	}
 
 	vector3 normalise() const {
@@ -111,6 +121,7 @@ class shape {
 	virtual double intersect(ray r)=0;
 	virtual vector3 get_normal(const vector3 pos) const=0;
 	colour col;
+	virtual ~shape() {}
 };
 
 class light {
@@ -124,6 +135,8 @@ class light {
 //In world.cpp
 std::vector<shape*>* getWorld();
 std::vector<light*>* getLights();
+void freeWorld(std::vector<shape*> *w);
+void freeLights(std::vector<light*> *l);
 vector3 operator*(double s, const vector3 &v);
 
 std::ostream& operator<<(std::ostream &out, const vector3 &v);

@@ -28,8 +28,14 @@ run: all
 $(IMAGE): all
 	./$(EXE) | pnmtopng > $(IMAGE)
 
+fullscreen: $(IMAGE)
+	eog -f $(IMAGE)
+
 disp: $(IMAGE)
 	eog $(IMAGE)
 
 runtrace: trace
 	./trace
+
+runworld: world
+	./world

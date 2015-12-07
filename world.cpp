@@ -1,6 +1,9 @@
 #include<iostream>
+#include<stdio.h>
 #include<vector>
+#include<cmath>
 #include "ray.h"
+
 
 vector3 operator*(double s, const vector3 &v) {
 	return vector3(s*v.x, s*v.y, s*v.z);
@@ -33,18 +36,18 @@ class triangle: public shape {
 		double det, u, v, t;
 		vec = r.dir.cross(q);
 		det = p.dot(vec);
-		
+		//std::cout << "det = " << det << std::endl;
 		//If det is zero then ray in plane of triangle
 		if(det < INTERSECT_EPSILON && det > -INTERSECT_EPSILON) return 0.0;
 		//Get ray from pos to ray origin
 		T = r.origin - pos;
 		u = T.dot(vec)/det;
 		//Test u
-		if(u < 0.0 || u > 1.0) return 0.0;
+		if(u < INTERSECT_EPSILON || u > 1.0-INTERSECT_EPSILON) return 0.0;
 		//and v (+u)
 		vec = T.cross(p);
 		v = r.dir.dot(vec)/det;
-		if(v < 0.0 || v + u > 1.0) return 0.0;
+		if(v < INTERSECT_EPSILON || v + u > 1.0-INTERSECT_EPSILON) return 0.0;
 		//Intersect at origin + t*dir
 		t = q.dot(vec)/det;
 		//Check we're not behind the ray origin
@@ -56,34 +59,102 @@ class triangle: public shape {
 	}
 };
 
+class shpere: public shape {
+	public:
+	vector3 pos;
+	double radius;
+	shpere(double nr, vector3 np, colour &ncol):
+		pos(np), radius(nr) {
+		col = ncol;
+	}
+	
+	vector3 get_normal(const vector3 p) const {
+		return p - pos;
+	}
+
+	double intersect(ray r) {
+		double a, b, c, d, dsq, s1, s2;
+		c = r.origin.dot(r.origin) + pos.dot(pos) - 2*r.origin.dot(pos) - radius*radius;
+		b = 2 * r.dir.dot(r.origin - pos);
+		a = r.dir.dot(r.dir);
+		if(a < INTERSECT_EPSILON) {
+			fprintf(stderr, "Warn: sphere::intersect: a < ITERSECT_EPSILON\n");
+			return 0.0;
+		}
+		dsq = b*b - 4*a*c;
+		if(dsq <= 0) {
+			return 0;
+		}
+		d = std::sqrt(dsq);
+		s1 = (-b+d)/(2*a);
+		s2 = (-b-d)/(2*a);
+		if(s1 < s2) {
+			if(s1 > INTERSECT_EPSILON) {
+				return s1;
+			}
+		}
+		if(s2 > INTERSECT_EPSILON) {
+			return s2;
+		} else {
+			return s1 > INTERSECT_EPSILON ? s1 : 0.0;
+		}
+	}
+};
+
+		
+
 std::vector<shape*>* getWorld() {
 	std::vector<shape*> *w = new std::vector<shape*>();
-	colour red  = colour((char)255, (char)255, (char)0);
+	colour red  = colour((char)255, (char)0, (char)0);
 	colour blue = colour((char)0, (char)0, (char)255);
-	w->push_back((shape*) (new triangle(vector3(5, 0, 0), vector3(0, 5, 0), vector3(1, 1, 81), red)));
+	//w->push_back((shape*) (new triangle(vector3(5, 0, 0), vector3(0, 5, 0), vector3(1, 1, 81), red)));
 	//w->push_back((shape*) (new triangle(vector3(20, 0, 200), vector3(0, 20, 200), vector3(-10, -10, 200), blue)));
-	w->push_back((shape*) (new triangle(vector3(10, -10, 20), vector3(10, 10, 20), vector3(0, 0, 100), blue)));
-	w->push_back((shape*) (new triangle(vector3(10, 10, 20), vector3(-10, 10, 20), vector3(0, 0, 100), blue)));
-	w->push_back((shape*) (new triangle(vector3(-10, 10, 20), vector3(-10, -10, 20), vector3(0, 0, 100), blue)));
-	w->push_back((shape*) (new triangle(vector3(-10, -10, 20), vector3(10, -10, 20), vector3(0, 0, 100), blue)));
+	
+	w->push_back((shape*) (new triangle(vector3(10, -10, 20), vector3(10, 10, 20), vector3(0, 0, 30), blue)));
+	w->push_back((shape*) (new triangle(vector3(10, 10, 20), vector3(-10, 10, 20), vector3(0, 0, 30), blue)));
+	w->push_back((shape*) (new triangle(vector3(-10, 10, 20), vector3(-10, -10, 20), vector3(0, 0, 30), blue)));
+	w->push_back((shape*) (new triangle(vector3(-10, -10, 20), vector3(10, -10, 20), vector3(0, 0, 30), blue)));
+	w->push_back((shape*) (new shpere(1, vector3(5, 3, 28), red)));
+	
+	//w->push_back((shape*) (new shpere(10, vector3(0, 0, 30), red)));
 	return w;
+}
+
+void freeWorld(std::vector<shape*> *w) {
+	while(w->size() > 0) {
+		delete (w->back());
+		w->pop_back();
+	}
+	delete w;
 }
 
 std::vector<light*>* getLights() {
 	std::vector<light*> *l = new std::vector<light*>();
-	l->push_back(new light(vector3(3, 3, 50), colour(127, 255, 255)));
+	l->push_back(new light(vector3(10, 10, 10), colour(127, 255, 255)));
 	return l;
 }
 
+void freeLights(std::vector<light*> *l) {
+	while(l->size() > 0) {
+		delete (l->back());
+		l->pop_back();
+	}
+	delete l;
+}
 /*
 int main() {
-	triangle t = triangle(vector3(1, 0, 0), vector3(0, 1, 0));
+	colour red  = colour((char)255, (char)255, (char)0);
+	triangle t = triangle(vector3(1, 0, 0), vector3(0, 1, 0), vector3(0, 0, 0), red);
 	shape &s = t;
-	ray r = {vector3(0, 0, 1), vector3(0.5, 0.4, -1.0)};
-	vector3 *v = s.intersect(r);
+	ray r = {vector3(0, 0, 1), vector3(0, 0, -2)};
+	double d = s.intersect(r);
 
-	if(v != NULL) std::cout << *v << std::endl;
-	else std::cout << "NULL" << std::endl;
+	//std::cout << d << std::endl;
+
+	shpere sp = shpere(6, vector3(0.9999, 0, 0), red);
+	shape &s1 = sp;
+	std::cout << s1.intersect(r) << std::endl;
 	return 0;
 }
 */
+
