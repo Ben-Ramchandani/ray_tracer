@@ -52,8 +52,6 @@ class triangle: public shape {
 		t = q.dot(vec)/det;
 		//Check we're not behind the ray origin
 		if(t < INTERSECT_EPSILON) return 0.0;
-		//Return intersect point
-		//return &(r.origin + t*r.dir);
 		//return ray intersect parameter: point = Origin + t*dir
 		return t;
 	}
@@ -107,8 +105,6 @@ std::vector<shape*>* getWorld() {
 	std::vector<shape*> *w = new std::vector<shape*>();
 	colour red  = colour(255, 0, 0, 1.0);
 	colour blue = colour(0, 0, 255, 1.0);
-	//w->push_back((shape*) (new triangle(vector3(5, 0, 0), vector3(0, 5, 0), vector3(1, 1, 81), red)));
-	//w->push_back((shape*) (new triangle(vector3(20, 0, 200), vector3(0, 20, 200), vector3(-10, -10, 200), blue)));
 	
 	w->push_back((shape*) (new triangle(vector3(10, -10, 20), vector3(10, 10, 20), vector3(0, 0, 30), blue)));
 	w->push_back((shape*) (new triangle(vector3(10, 10, 20), vector3(-10, 10, 20), vector3(0, 0, 30), blue)));
@@ -116,7 +112,6 @@ std::vector<shape*>* getWorld() {
 	w->push_back((shape*) (new triangle(vector3(-10, -10, 20), vector3(10, -10, 20), vector3(0, 0, 30), blue)));
 	w->push_back((shape*) (new shpere(1, vector3(5, 3, 28), red)));
 	
-	//w->push_back((shape*) (new shpere(10, vector3(0, 0, 30), red)));
 	return w;
 }
 

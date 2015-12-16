@@ -55,7 +55,7 @@ void gen_screen(ray eye, s_screen *s) {
 	s->width  = SCREEN_RESOLUTION_WIDTH;
 }
 
-
+//Find the nearest intersecting shpae and return a pointer to it or NULL on no intersection.
 shape* trace_nearest(ray r, std::vector<shape*> &world, double &distance) {
 	double closest_distance = DBL_INFINITY;
 	double t;
@@ -81,6 +81,7 @@ void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	//Check for collisions before the light source
 	shape* s = trace_nearest(r, w, t);
 	if(s != NULL && t < (1.0+INTERSECT_EPSILON)) {
+		//Light is blocked (shadow)
 		*c = colour(0, 0, 0);
 	} else {
 		distsq = r.dir.lengthsq();
@@ -106,9 +107,9 @@ void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 		normal = intersect_shape->get_normal(hit_position).normalise();
 		if(inv_ray_dir.dot(normal) < 0.0) {
 			normal.Minv();
-		}
-		
+		}	
 
+		//Go through each light and find its contribution
 		while(liter != lights.end()) {
 			dir_to_light = ((**liter).pos - hit_position).normalise();
 			//Don't look for light begind the object
@@ -188,11 +189,13 @@ int main() {
 	char* data;
 	ray eye;
 	s_screen screen;
+	std::vector<shape*> *w;
+	std::vector<light*> *l;
 	eye.origin = EYE_POSITION;
 	eye.dir = EYE_DIRECTION;
 	gen_screen(eye, &screen);
-	std::vector<shape*> *w = getWorld();
-	std::vector<light*> *l = getLights();
+	w = getWorld();
+	l = getLights();
 	data = ray_trace(screen, *w, *l);
 	write_pnm(data, screen.width, screen.height, stdout);
 	free(data);

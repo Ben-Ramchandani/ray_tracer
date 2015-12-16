@@ -1,9 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-#define WIDTH 2
-#define HEIGHT 2
-
 void write_pnm(char* data, int width, int height, FILE *fp) {
 	int ret1, ret2;
 	ret1 = fprintf(fp, "P6\n%d %d\n255\n", width, height);
