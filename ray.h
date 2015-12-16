@@ -5,10 +5,7 @@
 #define SCREEN_ALIGN_EPSILON 0.0000001
 #define ANGLE_CULL_EPSILON 0.0000001 
 #include<vector>
-#include<iostream>
-#include<stdio.h>
-#include<cmath>
-#define DEBUG
+#include<cmath>//For sqrt
 
 struct rgb_colour {
 	unsigned char red;
