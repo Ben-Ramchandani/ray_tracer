@@ -1,60 +1,59 @@
 #ifndef HEADER_RAY
 #define HEADER_RAY
+#include "config.h"
 #define INTERSECT_EPSILON 0.0000000001
-#define TRACE_DEPTH 9000
-#define LIGHT_FALLOFF 600
 #define SCREEN_ALIGN_EPSILON 0.0000001
-#define SCREEN_RESOLUTION_WIDTH 1920
-#define SCREEN_RESOLUTION_HEIGHT 1080
-#define SCREEN_DISTANCE 5
-#define SCREEN_SIZE_SCALE (1.0/1000.0)
-#define EYE_POSITION (vector3(0, 0, 0)) 
-#define EYE_DIRECTION (vector3(0, 0, 1)) 
-#define ANGLE_CULL_EPSILON 100000 
+#define ANGLE_CULL_EPSILON 0.0000001 
 #include<vector>
 #include<iostream>
 #include<stdio.h>
 #include<cmath>
+#define DEBUG
 
 struct rgb_colour {
-	char red;
-	char green;
-	char blue;
+	unsigned char red;
+	unsigned char green;
+	unsigned char blue;
 };
 
 
 class colour {
 	public:
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-	colour(): red(0), green(0), blue(0) {}
-	colour(unsigned char nr, unsigned char ng, unsigned char nb): red(nr), green(ng), blue(nb) {}
+	double red;
+	double green;
+	double blue;
+	double specular;
+	colour(): red(0), green(0), blue(0) , specular(0.0) {}
+	colour(double nr, double ng, double nb):
+		red(nr), green(ng), blue(nb), specular(0.0) {}
+	colour(double nr, double ng, double nb, double ns):
+		red(nr), green(ng), blue(nb) {
+		specular = ns > 1.0 ? 1.0 : ns;
+	}
 	void to_rbg(rgb_colour *c) {
-		c->red = red;
-		c->green = green;
-		c->blue = blue;
+		c->red   = red   > 255.0 ? 255 : (unsigned char) red;
+		c->green = green > 255.0 ? 255 : (unsigned char) green;
+		c->blue  = blue  > 255.0 ? 255 : (unsigned char) blue;
 	}
 
 	colour operator+(const colour &c) const {
-		int nr = (int)red + (int)c.red;
-		int ng = (int)green + (int)c.green;
-		int nb = (int)blue + (int)c.blue;
-		return colour(nr>255 ? 255 : nr, ng>255 ? 255 : ng, nb>255 ? 255 : nb);
+		return colour(red + c.red, green + c.green, blue + c.blue);
 	}
 	colour operator*(const colour &c) const {
-		return colour(((int)red * (int)c.red)/255,\
-			((int)green * (int)c.green)/255,\
-			((int)blue * (int)c.blue)/255);
+		return colour((red * c.red)/255.0,\
+			(green * c.green)/255.0,\
+			(blue * c.blue)/255.0);
 	}
 	colour operator/(const double d) const {
 		return colour(red/d, green/d, blue/d);
 	}
 	colour operator*(const double d) const {
-		if(d > 1.0)
-			fprintf(stderr, "Warning: colour::operator*: d > 1 (Overflow?)");
-
 		return colour(red*d, green*d, blue*d);
+	}
+	void operator+=(const colour &c) {
+		red += c.red;
+		green += c.green;
+		blue += c.blue;
 	}
 };
 
@@ -66,6 +65,14 @@ class vector3 {
 	vector3(): x(0), y(0), z(0) {}
 
 	vector3(double nx, double ny, double nz): x(nx), y(ny), z(nz) {}
+
+	vector3 operator-() const{
+		return vector3(-x, -y, -z);
+	}
+
+	void Minv() {
+		x = -x, y = -y, z = -z;
+	}
 	
 	vector3 operator+(const vector3 &v) const {
 		return vector3(x+v.x, y+v.y, z+v.z);

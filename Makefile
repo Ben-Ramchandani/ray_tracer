@@ -2,7 +2,7 @@ CPP = g++
 CPPFLAGS = -Wall -pedantic -O3
 TESTFLAGS = -Wall -pedantic -g
 SOURCES = pnmout.cpp trace.cpp world.cpp
-DEP = ray.h Makefile
+DEP = ray.h Makefile config.h
 OBJECTS=$(SOURCES:.cpp=.o)
 TESTEXES=$(SOURCES:.cpp=)
 EXE=ray

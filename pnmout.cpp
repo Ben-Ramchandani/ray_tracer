@@ -13,11 +13,4 @@ void write_pnm(char* data, int width, int height, FILE *fp) {
 		exit(1);
 	}
 }
-/*
-int main() {
-	char data[WIDTH][HEIGHT][3] = {{{255, 0, 0}, {255, 0, 0}}, {{0, 255, 0}, {0, 0, 255}}};
-	write_pnm((char *) data, WIDTH, HEIGHT, stdout);
-	return 0;
-}
-*/
 

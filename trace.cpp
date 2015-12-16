@@ -2,21 +2,23 @@
 #include<stdlib.h>
 #include<stdio.h>
 #include<vector>
+#include<cmath>
 #include "ray.h"
+#define SPECULAR_CUTOFF 0.7
 #define DBL_INFINITY (1.0/0.0)
-#define SCREEN_WIDTH (((double) (SCREEN_RESOLUTION_WIDTH)) * SCREEN_SIZE_SCALE)
-#define SCREEN_HEIGHT (((double) (SCREEN_RESOLUTION_HEIGHT)) * SCREEN_SIZE_SCALE)
+#define SCREEN_WIDTH ((double) (SCREEN_SIZE))
+#define SCREEN_HEIGHT ((((double) (SCREEN_RESOLUTION_HEIGHT))/((double) (SCREEN_RESOLUTION_WIDTH))) * SCREEN_SIZE)
 
 /* topl ------- 
  * |		|
  * |		|
  * |		|
  * |		|
- * base ----- botr
+ * botl ----- botr
  */
 struct s_screen {
 	vector3 eye;
-	vector3 base;
+	vector3 botl;
 	vector3 topl;
 	vector3 botr;
 	int height;
@@ -45,7 +47,7 @@ void gen_screen(ray eye, s_screen *s) {
 		zy_comp = -SCREEN_HEIGHT * planevec.cross(viewdir).normalise();
 	}
 
-	s->base   = centre - (zx_comp + zy_comp);
+	s->botl   = centre - (zx_comp + zy_comp);
 	s->topl   = centre + (zy_comp - zx_comp);
 	s->botr   = centre + (zx_comp - zy_comp);
 	s->eye    = eye.origin;
@@ -53,22 +55,12 @@ void gen_screen(ray eye, s_screen *s) {
 	s->width  = SCREEN_RESOLUTION_WIDTH;
 }
 
-/*
-struct s_screen screen = {
-	vector3( 0,  0, 0),
-	vector3(-1, -1, 5),
-	vector3(-1,  1, 5),
-	vector3( 1, -1, 5),
-	SCREEN_RESOLUTION,
-	SCREEN_RESOLUTION
-};
-*/
 
 shape* trace_nearest(ray r, std::vector<shape*> &world, double &distance) {
 	double closest_distance = DBL_INFINITY;
 	double t;
-	std::vector<shape*>::iterator v = world.begin();
 	shape* closest_shape = NULL;
+	std::vector<shape*>::iterator v = world.begin();
 	while(v != world.end()) {
 		t = (**v).intersect(r);
 		if(t != 0.0 && t < closest_distance) {
@@ -87,52 +79,55 @@ void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	r.origin = pos;
 	r.dir = l->pos - pos;
 	//Check for collisions before the light source
-	//std::cout << "Tracing ray " << r.origin << ", " << r.dir << std::endl;
 	shape* s = trace_nearest(r, w, t);
 	if(s != NULL && t < (1.0+INTERSECT_EPSILON)) {
-		//std::cout << "Light hit shape with t = " << t << std::endl;
-		*c = colour();
+		*c = colour(0, 0, 0);
 	} else {
 		distsq = r.dir.lengthsq();
-		//std::cout << "Light unimpeded at distance " << distsq << std::endl;
 		strength = (distsq <= LIGHT_FALLOFF ? 1.0 : LIGHT_FALLOFF/(distsq));
 		*c = l->col * strength;
-		//std::cout << "Strength is " << strength << std::endl;
 	}
 }
 
-void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, rgb_colour *c) {
-	double t, cosine_angle;
-	bool hit_side, light_side;
-	vector3 hit_position;
-	colour tmpcol, lightcol = colour(32, 32, 32);
+
+
+void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, colour *c) {
+	double t, light_cosine;
+	vector3 hit_position, normal, inv_ray_dir, dir_to_light;
+	colour tmpcol, diff_light_col = AMBIENT_COLOUR, spec_light_col = colour(0, 0, 0);
 	std::vector<light*>::iterator liter;
 	shape *intersect_shape;
 	intersect_shape = trace_nearest(r, world, t);
 
 	if(intersect_shape != NULL) {
+		inv_ray_dir = -r.dir;
 		liter = lights.begin();
 		hit_position = r.origin + t*r.dir;
-		hit_side = (r.dir.dot(intersect_shape->get_normal(hit_position)) > 0.0);
+		normal = intersect_shape->get_normal(hit_position).normalise();
+		if(inv_ray_dir.dot(normal) < 0.0) {
+			normal.Minv();
+		}
+		
+
 		while(liter != lights.end()) {
+			dir_to_light = ((**liter).pos - hit_position).normalise();
 			//Don't look for light begind the object
-			cosine_angle = (hit_position-(**liter).pos).dot(intersect_shape->get_normal(r.origin + t*r.dir));
-			if(cosine_angle < ANGLE_CULL_EPSILON && cosine_angle > -ANGLE_CULL_EPSILON) {
-				light_side = hit_side;
-			} else {
-				light_side = cosine_angle > 0.0;
-			}
-			if(light_side == hit_side) {
+			light_cosine = dir_to_light.dot(normal);
+			if(light_cosine > 0.0) {
 				trace_light(hit_position, world, *liter, &tmpcol);
+				diff_light_col += tmpcol*light_cosine;
+				if(light_cosine > SPECULAR_CUTOFF) {
+					spec_light_col += tmpcol*std::pow(light_cosine, SPECULAR_POWER);
+				}
 			}
 			liter++;
-			lightcol = lightcol + tmpcol;
 		}
-		(lightcol * intersect_shape->col).to_rbg(c);
+		*c = ((diff_light_col * intersect_shape->col) + (spec_light_col * intersect_shape->col.specular));
 	} else {
-		c->red = c->green = c->blue = (char)150;
+		*c = BACKGROUND_COLOUR;
 	}
 }
+
 
 char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lights) {
 	vector3 h_step, v_step, pos;
@@ -145,46 +140,60 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 	ray r;
 	r.origin = s.eye;
 	rgb_colour c;
+	colour col;
 	int i, j;
 	
-	h_step = (s.botr - s.base)/(s.width-1);
-	v_step = (s.topl - s.base)/(-s.height+1);
-	pos = s.topl;
+	h_step = (s.botr - s.botl)/(s.width-1);
+	v_step = (s.topl - s.botl)/(-s.height+1);
+	#ifdef SUPER_SAMPLE
+	int k, l;
+	vector3 h_sample_step = h_step/SUPER_SAMPLE;
+	vector3 v_sample_step = v_step/SUPER_SAMPLE;
+	vector3 sample_pos;
+	colour cuml;
+	#endif
 	
 	for(j=0; j<s.height; j++) {
+		pos = s.topl + j*v_step;
 		for(i=0; i<s.width; i++) {
+			#ifdef SUPER_SAMPLE
+			cuml = colour(0, 0, 0);
+			for(k=0; k<SUPER_SAMPLE; k++) {
+				sample_pos = pos+k*v_sample_step;
+				for(l=0; l<SUPER_SAMPLE; l++) {
+					r.dir = sample_pos-s.eye;
+					trace(r, world, lights, TRACE_DEPTH, &col);
+					cuml += col/(SUPER_SAMPLE*SUPER_SAMPLE);
+					sample_pos += h_sample_step;
+				}
+			}
+			cuml.to_rbg(&c);
+			#else
 			r.dir = pos-s.eye;
-			trace(r, world, lights, TRACE_DEPTH, &c);
+			trace(r, world, lights, TRACE_DEPTH, &col);
+			col.to_rbg(&c);
+			#endif
 			d = data + (j*s.width + i)*3;
 			d[0] = c.red;
 			d[1] = c.green;
 			d[2] = c.blue;
 			pos += h_step;
 		}
-		pos = s.topl + j*v_step;
 	}
 	return data;
 }
 
-void print_char_arr(char *arr, int length) {
-	int i;
-	for(i=0; i<length; i++) {
-		printf("%d, ", arr[i]);
-	}
-	printf("\n");
-}
 
 int main() {
 	char* data;
 	ray eye;
-	std::vector<shape*> *w = getWorld();
-	std::vector<light*> *l = getLights();
 	s_screen screen;
 	eye.origin = EYE_POSITION;
 	eye.dir = EYE_DIRECTION;
 	gen_screen(eye, &screen);
+	std::vector<shape*> *w = getWorld();
+	std::vector<light*> *l = getLights();
 	data = ray_trace(screen, *w, *l);
-	//print_char_arr(data, 16*3);
 	write_pnm(data, screen.width, screen.height, stdout);
 	free(data);
 	freeWorld(w);
