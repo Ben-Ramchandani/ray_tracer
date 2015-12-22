@@ -2,7 +2,7 @@ Ray tracer
 ==========
 
 A ray tracing program with diffuse and specular reflection.
-Uses triangles shperes and point lights.
+Uses triangles, shperes and point lights.
 Images are output in PNM binary format (P6).
 
 Useage
