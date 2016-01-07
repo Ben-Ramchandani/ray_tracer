@@ -78,8 +78,14 @@ void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	double t, distsq, strength;
 	r.origin = pos;
 	r.dir = l->pos - pos;
+	shape* s;
+	#ifdef SHADOWS_ENABLE
 	//Check for collisions before the light source
-	shape* s = trace_nearest(r, w, t);
+	s = trace_nearest(r, w, t);
+	#else
+	s = NULL;
+	#endif
+	
 	if(s != NULL && t < (1.0+INTERSECT_EPSILON)) {
 		//Light is blocked (shadow)
 		*c = colour(0, 0, 0);
