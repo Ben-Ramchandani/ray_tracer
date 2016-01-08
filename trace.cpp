@@ -3,7 +3,9 @@
 #include<stdio.h>
 #include<vector>
 #include<cmath>
+#include<ctime>
 #include "ray.h"
+#define TIME_TRACE
 #define SPECULAR_CUTOFF 0.7
 #define DBL_INFINITY (1.0/0.0)
 #define SCREEN_WIDTH ((double) (SCREEN_SIZE))
@@ -55,6 +57,8 @@ void gen_screen(ray eye, s_screen *s) {
 	s->width  = SCREEN_RESOLUTION_WIDTH;
 }
 
+
+
 //Find the nearest intersecting shpae and return a pointer to it or NULL on no intersection.
 shape* trace_nearest(ray r, std::vector<shape*> &world, double &distance) {
 	double closest_distance = DBL_INFINITY;
@@ -72,6 +76,8 @@ shape* trace_nearest(ray r, std::vector<shape*> &world, double &distance) {
 	distance = closest_distance;
 	return closest_shape;
 }
+
+
 
 void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	ray r;
@@ -136,6 +142,7 @@ void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 }
 
 
+
 char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lights) {
 	vector3 h_step, v_step, pos;
 	char *data = (char*) malloc(s.width*s.height*3);
@@ -160,6 +167,13 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 	colour cuml;
 	#endif
 	
+	#ifdef TIME_TRACE
+	clock_t t_start, t_end;
+	double t_elapsed;
+	std::cerr << "Begin timed ray trace" << std::endl;
+	t_start = std::clock();
+	#endif
+
 	for(j=0; j<s.height; j++) {
 		pos = s.topl + j*v_step;
 		for(i=0; i<s.width; i++) {
@@ -187,6 +201,12 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 			pos += h_step;
 		}
 	}
+
+	#ifdef TIME_TRACE
+	t_end = std::clock();
+	t_elapsed = (double) (t_end-t_start)/CLOCKS_PER_SEC;
+	std::cerr << "Run in " << t_elapsed << " seconds." << std::endl;
+	#endif
 	return data;
 }
 
@@ -197,11 +217,28 @@ int main() {
 	s_screen screen;
 	std::vector<shape*> *w;
 	std::vector<light*> *l;
+	
+	std::cerr << "### Ray tracer ###" << std::endl;
+
 	eye.origin = EYE_POSITION;
 	eye.dir = EYE_DIRECTION;
 	gen_screen(eye, &screen);
 	w = getWorld();
 	l = getLights();
+
+	std::cerr << "Rendering at " << SCREEN_RESOLUTION_WIDTH << " by " << SCREEN_RESOLUTION_HEIGHT;
+	#ifdef SUPER_SAMPLE
+	std::cerr << " with " << (SUPER_SAMPLE*SUPER_SAMPLE) << " samples per pixel." << std::endl;
+	#else
+	std::cerr << " (supersampling disabled)." << std::endl;
+	#endif
+	std::cerr << w->size() << " shapes and " << l->size() << " lights." << std::endl;
+	std::cerr << "Reflection: disabled" << std::endl;
+	#ifdef SHADOWS_ENABLE
+	std::cerr << "Shadows:    enabled" << std::endl;
+	#else
+	std::cerr << "Shadows:    disabled" << std::endl;
+	#endif
 	data = ray_trace(screen, *w, *l);
 	write_pnm(data, screen.width, screen.height, stdout);
 	free(data);
