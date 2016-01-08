@@ -1,5 +1,5 @@
 CPP = g++
-CPPFLAGS = -Wall -pedantic -O3
+CPPFLAGS = -Wall -pedantic -O3 -flto -march=native
 TESTFLAGS = -Wall -pedantic -g
 SOURCES = pnmout.cpp trace.cpp world.cpp
 DEP = ray.h Makefile config.h
