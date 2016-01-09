@@ -18,6 +18,7 @@ struct rgb_colour {
 struct surface {
 	double specular;
 	double reflection;
+	double diffusion;
 };
 
 class colour {
@@ -142,6 +143,7 @@ class light {
 //In world.cpp
 std::vector<shape*>* getWorld();
 std::vector<light*>* getLights();
+std::vector<shape*>* sphere_world(int n_spheres);
 void freeWorld(std::vector<shape*> *w);
 void freeLights(std::vector<light*> *l);
 vector3 operator*(double s, const vector3 &v);

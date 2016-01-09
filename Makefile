@@ -1,5 +1,7 @@
 CPP = g++
 CPPFLAGS = -Wall -pedantic -O3 -flto -march=native
+BENCHMARK = -D RUN_BENCHMARK
+BENCH_EXE = ray_bench
 TESTFLAGS = -Wall -pedantic -g
 SOURCES = pnmout.cpp trace.cpp world.cpp
 DEP = ray.h Makefile config.h
@@ -24,6 +26,12 @@ clean:
 
 run: all
 	./$(EXE)
+
+$(BENCH_EXE): $(SOURCES) $(DEP)
+	$(CPP) $(CPPFLAGS) $(BENCHMARK) $(SOURCES) -o $@
+
+bench: $(BENCH_EXE)
+	./$(BENCH_EXE) 1>/dev/null 2>log.txt
 
 $(IMAGE): all
 	./$(EXE) | pnmtopng > $(IMAGE)

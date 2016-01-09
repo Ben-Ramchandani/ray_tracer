@@ -101,25 +101,110 @@ class shpere: public shape {
 	}
 };
 
-		
+class plane: public shape {
+	private:
+	vector3 normal;
+	public:
+	vector3 pos;
+	
+	plane(vector3 np, vector3 nn, colour &ncol, surface &ns):
+		pos(np) {
+		normal = nn.normalise();
+		col = ncol;
+		surf = ns;
+	}
+
+	vector3 get_normal(const vector3 ignore) const {
+		return normal;
+	}
+
+	double intersect(ray r) {
+		vector3 n;
+		double dot_norm = r.dir.dot(normal);
+		if(dot_norm < 0.0) {
+			n = -normal;
+			dot_norm = -dot_norm;
+		} else {
+			n = normal;
+		}
+
+		if(dot_norm < INTERSECT_EPSILON) {
+			//Line is parallel to plane
+			return 0.0;
+		}
+
+		/* Ray: p = t*r + r_0
+		 * Plane (p-p_0).n = 0
+		 * => t = ((p_0 - r_0).n)/(r.n)
+		 */
+		double t = ((pos - r.origin).dot(n))/(dot_norm);
+		if(t < INTERSECT_EPSILON) {
+			return 0.0;
+		} else {
+			return t;
+		}
+	}
+};
+
+
+
 
 std::vector<shape*>* getWorld() {
 	std::vector<shape*> *w = new std::vector<shape*>();
+	
 	colour red  = colour(255, 0, 0, 1.0);
 	colour blue = colour(0, 0, 255, 1.0);
-	surface matt;
+	//colour green = colour(0, 255.0, 0, 1.0);
+	//colour silver = colour(211, 211, 211);
+	//surface matt;
 	surface shiny;
-	matt.reflection = 0.0;
-	matt.specular = 0.0;
-	shiny.reflection = 0.9;
+	//matt.reflection = 0.0;
+	//matt.specular = 0.0;
+	//matt.diffusion = 1.0;
+	shiny.reflection = 0.8;
 	shiny.specular = 1.0;
+	shiny.diffusion = 0.9;
+
+	//Pyramid and ball
 	
-	w->push_back((shape*) (new triangle(vector3(10, -10, 30), vector3(10, 10, 30), vector3(0, 0, 20), blue, matt)));
-	w->push_back((shape*) (new triangle(vector3(10, 10, 30), vector3(-10, 10, 30), vector3(0, 0, 20), blue, matt)));
-	w->push_back((shape*) (new triangle(vector3(-10, 10, 30), vector3(-10, -10, 30), vector3(0, 0, 20), blue, matt)));
-	w->push_back((shape*) (new triangle(vector3(-10, -10, 30), vector3(10, -10, 30), vector3(0, 0, 20), blue, matt)));
+	w->push_back((shape*) (new triangle(vector3(10, -10, 30), vector3(10, 10, 30), vector3(0, 0, 20), blue, shiny)));
+	w->push_back((shape*) (new triangle(vector3(10, 10, 30), vector3(-10, 10, 30), vector3(0, 0, 20), blue, shiny)));
+	w->push_back((shape*) (new triangle(vector3(-10, 10, 30), vector3(-10, -10, 30), vector3(0, 0, 20), blue, shiny)));
+	w->push_back((shape*) (new triangle(vector3(-10, -10, 30), vector3(10, -10, 30), vector3(0, 0, 20), blue, shiny)));
 	w->push_back((shape*) (new shpere(1, vector3(0, 3, 25), red, shiny)));
 	
+
+	//A room
+	/*
+	w->push_back((shape*) (new plane(vector3(0, -10, 0), vector3(0, 1, 0), red, matt)));
+	w->push_back((shape*) (new plane(vector3(0, 10, 0), vector3(0, -1, 0), red, matt)));
+	w->push_back((shape*) (new plane(vector3(0, 0, 30), vector3(0, 0, 1), blue, matt)));
+	w->push_back((shape*) (new plane(vector3(10, 0, 0), vector3(1, 0, 0), green, matt)));
+	w->push_back((shape*) (new plane(vector3(-10, 0, 0), vector3(-1, 0, 0), green, matt)));
+	w->push_back((shape*) (new shpere(3, vector3(0, 0, 20), silver, shiny)));
+	*/
+	return w;
+
+}
+
+std::vector<shape*>* sphere_world(int n_spheres) {
+	surface shiny;
+	shiny.reflection = 0.8;
+	shiny.specular = 1.0;
+	shiny.diffusion = 0.9;
+	std::vector<shape*> *w = new std::vector<shape*>();
+	int i, j, k;
+	for(i=0; i<3; i++) {
+	for(j=0; j<3; j++) {
+	for(k=0; k<3; k++) {
+		if(n_spheres > 0) {
+			colour c = colour(i*127.5, 255-j*127.5, ((int) (127.5+(k*127.5)))%382);
+			w->push_back((shape*) (new shpere(1, vector3(i*4-5.5, j*4-6, k*4+14), c, shiny)));
+			n_spheres -= 1;
+		}
+	}
+	}
+	}
 	return w;
 }
 
@@ -133,8 +218,8 @@ void freeWorld(std::vector<shape*> *w) {
 
 std::vector<light*>* getLights() {
 	std::vector<light*> *l = new std::vector<light*>();
-	l->push_back(new light(vector3(10, 3, 0), colour(255, 255, 255)));
-	l->push_back(new light(vector3(13, 20, 5), colour(255, 255, 255)));
+	//l->push_back(new light(vector3(-5, 3, 2), colour(255, 255, 255)));
+	l->push_back(new light(vector3(15, 15, 5), colour(255, 255, 255)));
 	return l;
 }
 

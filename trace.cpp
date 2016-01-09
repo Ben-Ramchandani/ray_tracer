@@ -11,6 +11,7 @@
 #define DBL_INFINITY (1.0/0.0)
 #define SCREEN_WIDTH ((double) (SCREEN_SIZE))
 #define SCREEN_HEIGHT ((((double) (SCREEN_RESOLUTION_HEIGHT))/((double) (SCREEN_RESOLUTION_WIDTH))) * SCREEN_SIZE)
+//#define RUN_BENCHMARK
 
 /* topl ------- 
  * |		|
@@ -144,7 +145,7 @@ bool trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 			liter++;
 		}
 		
-		colour diffuse_component  = diff_light_col * intersect_shape->col;
+		colour diffuse_component  = diff_light_col * intersect_shape->col * intersect_shape->surf.diffusion;
 		colour specular_component = spec_light_col * intersect_shape->surf.specular;
 		*c = diffuse_component + specular_component;
 
@@ -156,7 +157,7 @@ bool trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 		if(depth > 0 && (reflection_strength > REFLECTION_CUTOFF)) {
 			colour reflection_colour;
 			if(trace(reflection, world, lights, depth-1, reflection_strength, &reflection_colour)) {
-				reflection_component = reflection_colour;// * intersect_shape->col;
+				reflection_component = reflection_colour * intersect_shape->surf.reflection;// * intersect_shape->col;
 				*c = *c + reflection_component;
 			}
 		}
@@ -239,7 +240,7 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 }
 
 
-int main() {
+void ray_tracer(int n_spheres, FILE* out_file) {
 	char* data;
 	ray eye;
 	s_screen screen;
@@ -251,7 +252,8 @@ int main() {
 	eye.origin = EYE_POSITION;
 	eye.dir = EYE_DIRECTION;
 	gen_screen(eye, &screen);
-	w = getWorld();
+	//w = getWorld();
+	w = sphere_world(n_spheres);
 	l = getLights();
 
 	std::cerr << "Rendering at " << SCREEN_RESOLUTION_WIDTH << " by " << SCREEN_RESOLUTION_HEIGHT;
@@ -272,9 +274,21 @@ int main() {
 	std::cerr << "Shadows:    disabled" << std::endl;
 	#endif
 	data = ray_trace(screen, *w, *l);
-	write_pnm(data, screen.width, screen.height, stdout);
+	#ifndef RUN_BENCHMARK
+	write_pnm(data, screen.width, screen.height, out_file);
+	#endif
 	free(data);
 	freeWorld(w);
 	freeLights(l);
+}
+
+int main() {
+	#ifdef RUN_BENCHMARK
+	for(int i=0; i<28; i++) {
+		ray_tracer(i, NULL);
+	}
+	#else
+	ray_tracer(27, stdout);
+	#endif
 	return 0;
 }
