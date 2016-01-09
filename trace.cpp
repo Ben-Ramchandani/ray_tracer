@@ -7,6 +7,7 @@
 #include "ray.h"
 #define TIME_TRACE
 #define SPECULAR_CUTOFF 0.7
+#define REFLECTION_CUTOFF 0.01
 #define DBL_INFINITY (1.0/0.0)
 #define SCREEN_WIDTH ((double) (SCREEN_SIZE))
 #define SCREEN_HEIGHT ((((double) (SCREEN_RESOLUTION_HEIGHT))/((double) (SCREEN_RESOLUTION_WIDTH))) * SCREEN_SIZE)
@@ -79,7 +80,7 @@ shape* trace_nearest(ray r, std::vector<shape*> &world, double &distance) {
 
 
 
-void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
+bool trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	ray r;
 	double t, distsq, strength;
 	r.origin = pos;
@@ -94,23 +95,26 @@ void trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 	
 	if(s != NULL && t < (1.0+INTERSECT_EPSILON)) {
 		//Light is blocked (shadow)
-		*c = colour(0, 0, 0);
+		return false;
 	} else {
 		distsq = r.dir.lengthsq();
 		strength = (distsq <= LIGHT_FALLOFF ? 1.0 : LIGHT_FALLOFF/(distsq));
 		*c = l->col * strength;
+		return true;
 	}
 }
 
 
 
-void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, colour *c) {
+bool trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, double strength, colour *c) {
 	double t, light_cosine;
 	vector3 hit_position, normal, inv_ray_dir, dir_to_light;
 	colour tmpcol, diff_light_col = AMBIENT_COLOUR, spec_light_col = colour(0, 0, 0);
 	std::vector<light*>::iterator liter;
 	shape *intersect_shape;
 	intersect_shape = trace_nearest(r, world, t);
+	ray reflection;
+	double reflection_cosine;
 
 	if(intersect_shape != NULL) {
 		inv_ray_dir = -r.dir;
@@ -118,8 +122,10 @@ void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 		hit_position = r.origin + t*r.dir;
 		normal = intersect_shape->get_normal(hit_position).normalise();
 		if(inv_ray_dir.dot(normal) < 0.0) {
-			normal.Minv();
-		}	
+			normal = -normal;
+		}
+		reflection.origin = hit_position;
+		reflection.dir    = r.dir - 2*(r.dir.dot(normal))*normal;
 
 		//Go through each light and find its contribution
 		while(liter != lights.end()) {
@@ -127,17 +133,39 @@ void trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 			//Don't look for light begind the object
 			light_cosine = dir_to_light.dot(normal);
 			if(light_cosine > 0.0) {
-				trace_light(hit_position, world, *liter, &tmpcol);
-				diff_light_col += tmpcol*light_cosine;
-				if(light_cosine > SPECULAR_CUTOFF) {
-					spec_light_col += tmpcol*std::pow(light_cosine, SPECULAR_POWER);
+				if(trace_light(hit_position, world, *liter, &tmpcol)) {
+					diff_light_col += tmpcol*light_cosine;
+					reflection_cosine = reflection.dir.normalise().dot(dir_to_light);
+					if(reflection_cosine > SPECULAR_CUTOFF) {
+						spec_light_col += tmpcol*std::pow(reflection_cosine, SPECULAR_POWER);
+					}
 				}
 			}
 			liter++;
 		}
-		*c = ((diff_light_col * intersect_shape->col) + (spec_light_col * intersect_shape->col.specular));
+		
+		colour diffuse_component  = diff_light_col * intersect_shape->col;
+		colour specular_component = spec_light_col * intersect_shape->surf.specular;
+		*c = diffuse_component + specular_component;
+
+		#ifdef REFLECTION_ENABLE
+		//Deal with reflection
+
+		colour reflection_component;
+		double reflection_strength = intersect_shape->surf.reflection * strength; 
+		if(depth > 0 && (reflection_strength > REFLECTION_CUTOFF)) {
+			colour reflection_colour;
+			if(trace(reflection, world, lights, depth-1, reflection_strength, &reflection_colour)) {
+				reflection_component = reflection_colour;// * intersect_shape->col;
+				*c = *c + reflection_component;
+			}
+		}
+		#endif
+
+		return true;
 	} else {
 		*c = BACKGROUND_COLOUR;
+		return false;
 	}
 }
 
@@ -148,7 +176,7 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 	char *data = (char*) malloc(s.width*s.height*3);
 	char *d;
 	if(data == NULL) {
-		std::cout << "Fatal: ray_trace: Memory allocation failed";
+		std::cerr << "Fatal: ray_trace: Memory allocation failed";
 		exit(2);
 	}
 	ray r;
@@ -183,7 +211,7 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 				sample_pos = pos+k*v_sample_step;
 				for(l=0; l<SUPER_SAMPLE; l++) {
 					r.dir = sample_pos-s.eye;
-					trace(r, world, lights, TRACE_DEPTH, &col);
+					trace(r, world, lights, TRACE_DEPTH, 1.0, &col);
 					cuml += col/(SUPER_SAMPLE*SUPER_SAMPLE);
 					sample_pos += h_sample_step;
 				}
@@ -191,7 +219,7 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 			cuml.to_rbg(&c);
 			#else
 			r.dir = pos-s.eye;
-			trace(r, world, lights, TRACE_DEPTH, &col);
+			trace(r, world, lights, TRACE_DEPTH, 1.0, &col);
 			col.to_rbg(&c);
 			#endif
 			d = data + (j*s.width + i)*3;
@@ -233,7 +261,11 @@ int main() {
 	std::cerr << " (supersampling disabled)." << std::endl;
 	#endif
 	std::cerr << w->size() << " shapes and " << l->size() << " lights." << std::endl;
+	#ifdef REFLECTION_ENABLE
+	std::cerr << "Reflection: enabled" << std::endl;
+	#else
 	std::cerr << "Reflection: disabled" << std::endl;
+	#endif
 	#ifdef SHADOWS_ENABLE
 	std::cerr << "Shadows:    enabled" << std::endl;
 	#else

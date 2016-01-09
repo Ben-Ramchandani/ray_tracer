@@ -4,6 +4,7 @@
 #define INTERSECT_EPSILON 0.0000000001
 #define SCREEN_ALIGN_EPSILON 0.0000001
 #define ANGLE_CULL_EPSILON 0.0000001 
+#define SINGLE_COL_MAX 255.0
 #include<vector>
 #include<cmath>//For sqrt
 
@@ -13,6 +14,11 @@ struct rgb_colour {
 	unsigned char blue;
 };
 
+
+struct surface {
+	double specular;
+	double reflection;
+};
 
 class colour {
 	public:
@@ -28,18 +34,18 @@ class colour {
 		specular = ns > 1.0 ? 1.0 : ns;
 	}
 	void to_rbg(rgb_colour *c) {
-		c->red   = red   > 255.0 ? 255 : (unsigned char) red;
-		c->green = green > 255.0 ? 255 : (unsigned char) green;
-		c->blue  = blue  > 255.0 ? 255 : (unsigned char) blue;
+		c->red   = red   > COL_MAX ? 255 : (unsigned char) (red   * (255.0/COL_MAX));
+		c->green = green > COL_MAX ? 255 : (unsigned char) (green * (255.0/COL_MAX));
+		c->blue  = blue  > COL_MAX ? 255 : (unsigned char) (blue  * (255.0/COL_MAX));
 	}
 
 	colour operator+(const colour &c) const {
 		return colour(red + c.red, green + c.green, blue + c.blue);
 	}
 	colour operator*(const colour &c) const {
-		return colour((red * c.red)/255.0,\
-			(green * c.green)/255.0,\
-			(blue * c.blue)/255.0);
+		return colour((red * c.red)/SINGLE_COL_MAX,\
+			(green * c.green)/SINGLE_COL_MAX,\
+			(blue * c.blue)/SINGLE_COL_MAX);
 	}
 	colour operator/(const double d) const {
 		return colour(red/d, green/d, blue/d);
@@ -67,10 +73,6 @@ class vector3 {
 		return vector3(-x, -y, -z);
 	}
 
-	void Minv() {
-		x = -x, y = -y, z = -z;
-	}
-	
 	vector3 operator+(const vector3 &v) const {
 		return vector3(x+v.x, y+v.y, z+v.z);
 	}
@@ -125,6 +127,7 @@ class shape {
 	virtual double intersect(ray r)=0;
 	virtual vector3 get_normal(const vector3 pos) const=0;
 	colour col;
+	surface surf;
 	virtual ~shape() {}
 };
 

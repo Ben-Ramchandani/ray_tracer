@@ -20,9 +20,10 @@ class triangle: public shape {
 	vector3 p, q, normal;	
 	public:
 	vector3 pos;
-	triangle(vector3 np, vector3 nq, vector3 npos, colour &ncol):
+	triangle(vector3 np, vector3 nq, vector3 npos, colour &ncol, surface &s):
 		p(np), q(nq), pos(npos) {
 		col = ncol;
+		surf = s;
 		normal = p.cross(q);
 	}
 	
@@ -61,9 +62,10 @@ class shpere: public shape {
 	public:
 	vector3 pos;
 	double radius;
-	shpere(double nr, vector3 np, colour &ncol):
-		pos(np), radius(nr) {
+	shpere(double nr, vector3 np, colour &ncol, surface &s):
+		pos(np), radius(nr){
 		col = ncol;
+		surf = s;
 	}
 	
 	vector3 get_normal(const vector3 p) const {
@@ -105,12 +107,18 @@ std::vector<shape*>* getWorld() {
 	std::vector<shape*> *w = new std::vector<shape*>();
 	colour red  = colour(255, 0, 0, 1.0);
 	colour blue = colour(0, 0, 255, 1.0);
+	surface matt;
+	surface shiny;
+	matt.reflection = 0.0;
+	matt.specular = 0.0;
+	shiny.reflection = 0.9;
+	shiny.specular = 1.0;
 	
-	w->push_back((shape*) (new triangle(vector3(10, -10, 20), vector3(10, 10, 20), vector3(0, 0, 30), blue)));
-	w->push_back((shape*) (new triangle(vector3(10, 10, 20), vector3(-10, 10, 20), vector3(0, 0, 30), blue)));
-	w->push_back((shape*) (new triangle(vector3(-10, 10, 20), vector3(-10, -10, 20), vector3(0, 0, 30), blue)));
-	w->push_back((shape*) (new triangle(vector3(-10, -10, 20), vector3(10, -10, 20), vector3(0, 0, 30), blue)));
-	w->push_back((shape*) (new shpere(1, vector3(5, 3, 28), red)));
+	w->push_back((shape*) (new triangle(vector3(10, -10, 30), vector3(10, 10, 30), vector3(0, 0, 20), blue, matt)));
+	w->push_back((shape*) (new triangle(vector3(10, 10, 30), vector3(-10, 10, 30), vector3(0, 0, 20), blue, matt)));
+	w->push_back((shape*) (new triangle(vector3(-10, 10, 30), vector3(-10, -10, 30), vector3(0, 0, 20), blue, matt)));
+	w->push_back((shape*) (new triangle(vector3(-10, -10, 30), vector3(10, -10, 30), vector3(0, 0, 20), blue, matt)));
+	w->push_back((shape*) (new shpere(1, vector3(0, 3, 25), red, shiny)));
 	
 	return w;
 }
