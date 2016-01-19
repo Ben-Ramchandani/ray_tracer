@@ -58,11 +58,11 @@ class triangle: public shape {
 	}
 };
 
-class shpere: public shape {
+class sphere: public shape {
 	public:
 	vector3 pos;
 	double radius;
-	shpere(double nr, vector3 np, colour &ncol, surface &s):
+	sphere(double nr, vector3 np, colour &ncol, surface &s):
 		pos(np), radius(nr){
 		col = ncol;
 		surf = s;
@@ -153,7 +153,7 @@ std::vector<shape*>* getWorld() {
 	std::vector<shape*> *w = new std::vector<shape*>();
 	
 	colour red  = colour(255, 0, 0, 1.0);
-	colour blue = colour(0, 0, 255, 1.0);
+	//colour blue = colour(0, 0, 255, 1.0);
 	//colour green = colour(0, 255.0, 0, 1.0);
 	//colour silver = colour(211, 211, 211);
 	//surface matt;
@@ -166,13 +166,13 @@ std::vector<shape*>* getWorld() {
 	shiny.diffusion = 0.9;
 
 	//Pyramid and ball
-	
+	/*
 	w->push_back((shape*) (new triangle(vector3(10, -10, 30), vector3(10, 10, 30), vector3(0, 0, 20), blue, shiny)));
 	w->push_back((shape*) (new triangle(vector3(10, 10, 30), vector3(-10, 10, 30), vector3(0, 0, 20), blue, shiny)));
 	w->push_back((shape*) (new triangle(vector3(-10, 10, 30), vector3(-10, -10, 30), vector3(0, 0, 20), blue, shiny)));
 	w->push_back((shape*) (new triangle(vector3(-10, -10, 30), vector3(10, -10, 30), vector3(0, 0, 20), blue, shiny)));
-	w->push_back((shape*) (new shpere(1, vector3(0, 3, 25), red, shiny)));
-	
+	w->push_back((shape*) (new sphere(1, vector3(0, 3, 25), red, shiny)));
+	*/
 
 	//A room
 	/*
@@ -181,15 +181,18 @@ std::vector<shape*>* getWorld() {
 	w->push_back((shape*) (new plane(vector3(0, 0, 30), vector3(0, 0, 1), blue, matt)));
 	w->push_back((shape*) (new plane(vector3(10, 0, 0), vector3(1, 0, 0), green, matt)));
 	w->push_back((shape*) (new plane(vector3(-10, 0, 0), vector3(-1, 0, 0), green, matt)));
-	w->push_back((shape*) (new shpere(3, vector3(0, 0, 20), silver, shiny)));
+	w->push_back((shape*) (new sphere(3, vector3(0, 0, 20), silver, shiny)));
 	*/
+
+	//One sphere
+	w->push_back((shape*) (new sphere(3, vector3(0, 0, 10), red, shiny)));
 	return w;
 
 }
 
 std::vector<shape*>* sphere_world(int n_spheres) {
 	surface shiny;
-	shiny.reflection = 0.8;
+	shiny.reflection = 0.4;
 	shiny.specular = 1.0;
 	shiny.diffusion = 0.9;
 	std::vector<shape*> *w = new std::vector<shape*>();
@@ -199,7 +202,7 @@ std::vector<shape*>* sphere_world(int n_spheres) {
 	for(k=0; k<3; k++) {
 		if(n_spheres > 0) {
 			colour c = colour(i*127.5, 255-j*127.5, ((int) (127.5+(k*127.5)))%382);
-			w->push_back((shape*) (new shpere(1, vector3(i*4-5.5, j*4-6, k*4+14), c, shiny)));
+			w->push_back((shape*) (new sphere(1, vector3(i*4-5.5, j*4-6, k*4+14), c, shiny)));
 			n_spheres -= 1;
 		}
 	}

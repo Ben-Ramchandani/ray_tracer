@@ -252,8 +252,12 @@ void ray_tracer(int n_spheres, FILE* out_file) {
 	eye.origin = EYE_POSITION;
 	eye.dir = EYE_DIRECTION;
 	gen_screen(eye, &screen);
-	//w = getWorld();
+	#ifdef RUN_BENCHMARK
 	w = sphere_world(n_spheres);
+	#else
+	//w = getWorld();
+	w = sphere_world(27);
+	#endif
 	l = getLights();
 
 	std::cerr << "Rendering at " << SCREEN_RESOLUTION_WIDTH << " by " << SCREEN_RESOLUTION_HEIGHT;
@@ -282,13 +286,17 @@ void ray_tracer(int n_spheres, FILE* out_file) {
 	freeLights(l);
 }
 
+void ray_tracer(FILE* out_file) {
+	ray_tracer(27, out_file);
+}
+
 int main() {
 	#ifdef RUN_BENCHMARK
 	for(int i=0; i<28; i++) {
 		ray_tracer(i, NULL);
 	}
 	#else
-	ray_tracer(27, stdout);
+	ray_tracer(stdout);
 	#endif
 	return 0;
 }
