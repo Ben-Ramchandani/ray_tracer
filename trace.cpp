@@ -62,7 +62,7 @@ void gen_screen(ray eye, s_screen *s) {
 
 
 //Find the nearest intersecting shpae and return a pointer to it or NULL on no intersection.
-shape* trace_nearest(ray r, std::vector<shape*> &world, double &distance) {
+shape* trace_nearest(ray &r, std::vector<shape*> &world, double &distance) {
 	double closest_distance = DBL_INFINITY;
 	double t;
 	shape* closest_shape = NULL;
@@ -107,7 +107,7 @@ bool trace_light(vector3 pos, std::vector<shape*> &w, light *l, colour *c) {
 
 
 
-bool trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, double strength, colour *c) {
+bool trace(ray &r, std::vector<shape*> &world, std::vector<light*> &lights, int depth, double strength, colour *c) {
 	double t, light_cosine;
 	vector3 hit_position, normal, inv_ray_dir, dir_to_light;
 	colour tmpcol, diff_light_col = AMBIENT_COLOUR, spec_light_col = colour(0, 0, 0);
@@ -172,7 +172,7 @@ bool trace(ray r, std::vector<shape*> &world, std::vector<light*> &lights, int d
 
 
 
-char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lights) {
+char* ray_trace(s_screen &s, std::vector<shape*> &world, std::vector<light*> &lights) {
 	vector3 h_step, v_step, pos;
 	char *data = (char*) malloc(s.width*s.height*3);
 	char *d;
@@ -242,15 +242,13 @@ char* ray_trace(s_screen s, std::vector<shape*> &world, std::vector<light*> &lig
 
 void ray_tracer(int n_spheres, FILE* out_file) {
 	char* data;
-	ray eye;
 	s_screen screen;
 	std::vector<shape*> *w;
 	std::vector<light*> *l;
 	
 	std::cerr << "### Ray tracer ###" << std::endl;
 
-	eye.origin = EYE_POSITION;
-	eye.dir = EYE_DIRECTION;
+	ray eye = {EYE_DIRECTION, EYE_POSITION};
 	gen_screen(eye, &screen);
 	#ifdef RUN_BENCHMARK
 	w = sphere_world(n_spheres);

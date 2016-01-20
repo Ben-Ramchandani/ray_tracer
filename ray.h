@@ -34,7 +34,7 @@ class colour {
 		red(nr), green(ng), blue(nb) {
 		specular = ns > 1.0 ? 1.0 : ns;
 	}
-	void to_rbg(rgb_colour *c) {
+	void to_rbg(rgb_colour *c) const {
 		c->red   = red   > COL_MAX ? 255 : (unsigned char) (red   * (255.0/COL_MAX));
 		c->green = green > COL_MAX ? 255 : (unsigned char) (green * (255.0/COL_MAX));
 		c->blue  = blue  > COL_MAX ? 255 : (unsigned char) (blue  * (255.0/COL_MAX));
